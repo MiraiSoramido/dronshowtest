@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ドローンショークイズ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .quiz-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .question {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .options {
+            margin-bottom: 20px;
+        }
+        .option {
+            display: block;
+            margin-bottom: 10px;
+            cursor: pointer;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .option:hover {
+            background-color: #f0f0f0;
+        }
+        .selected {
+            background-color: #e0e0e0;
+        }
+        .feedback {
+            margin: 10px 0;
+            font-weight: bold;
+            display: none;
+        }
+        .correct {
+            color: red;
+        }
+        .incorrect {
+            color: blue;
+        }
+        .next-btn, .submit-btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .next-btn:hover, .submit-btn:hover {
+            background-color: #45a049;
+        }
+        .result-container {
+            display: none;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .explanation {
+            margin-top: 20px;
+        }
+        .wrong-answer {
+            color: red;
+        }
+        .restart-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .restart-btn:hover {
+            background-color: #0b7dda;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .progress {
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ドローンショークイズ</h1>
+    
+    <div class="progress">問題 <span id="current-question">1</span> / <span id="total-questions">5</span></div>
+    
+    <div id="quiz-container" class="quiz-container">
+        <div class="question" id="question"></div>
+        <div class="options" id="options"></div>
+        <div class="feedback correct" id="correct-feedback">正解です</div>
+        <div class="feedback incorrect" id="incorrect-feedback">不正解です</div>
+        <button class="next-btn" id="next-btn">次の問題へ</button>
+        <button class="submit-btn" id="submit-btn" style="display:none;">結果を見る</button>
+    </div>
+    
+    <div id="result-container" class="result-container">
+        <h2>クイズ結果</h2>
+        <p>5問中 <span id="score">0</span> 問正解しました！</p>
+        <div class="explanation" id="explanation"></div>
+        <button class="restart-btn" id="restart-btn">もう一度挑戦する</button>
+    </div>
+    
+    <script>
+        const quizData = [
+            {
+                question: "第1問: ドローンショーが最初に行われた国は？",
+                options: ["アメリカ", "スイス", "中国"],
+                correctAnswer: 1, // 0-indexed, so 1 means the second option
+                explanation: "ドローンショーが最初に行われたのはスイスです。2012年のスイスのイベントが初とされています。"
+            },
+            {
+                question: "第2問: 東京五輪でドローンショー部門を担当したIntelドローンショー部門を買収したのは？",
+                options: ["イーロンマスク氏の弟", "トランプ大統領の親戚", "ビルゲイツ氏の関係者"],
+                correctAnswer: 0,
+                explanation: "東京五輪でドローンショーを担当したIntelドローンショー部門を買収したのはイーロンマスク氏の弟です。イーロン・マスク氏の弟キンバル・マスク氏です。"
+            },
+            {
+                question: "第3問: この中で実際にあったドローンショーのハプニングは？",
+                options: ["鳥とドローンが衝突", "花火が真ん中で爆発してドローンが墜落", "ライバル会社が妨害電波"],
+                correctAnswer: 2,
+                explanation: "実際にあったドローンショーのハプニングはライバル会社が妨害電波を送ったことです。ライバル会社が妨害電波発生装置を使いドローンが大量に墜落しました。中国での出来事です。"
+            },
+            {
+                question: "第4問: 日本で行われたドローンショー(テスト除く)の最大機数は？",
+                options: ["2200機", "810機", "1460機"],
+                correctAnswer: 0,
+                explanation: "日本で行われたドローンショー(テスト除く)の最大機数は2200機です。2025年2月に行われたDIG SHIBUYA DG DRONE SHOWというイベントです。実施企業はレッドクリフ。"
+            },
+            {
+                question: "第5問: ドローンショーの「同時飛行数」ギネス記録で過去に存在した記録は？",
+                options: ["4514機", "8100機", "1919機"],
+                correctAnswer: 1,
+                explanation: "ドローンショーの「同時飛行数」ギネス記録で過去に存在した記録は8100機です。もう更新されてしまいましたが過去の同時飛行数記録にあります。中国の企業を中心に編成された複数国合同チームが達成しました。"
+            }
+        ];
+
+        let currentQuestion = 0;
+        let score = 0;
+        let userAnswers = [];
+
+        const questionElement = document.getElementById('question');
+        const optionsElement = document.getElementById('options');
+        const correctFeedback = document.getElementById('correct-feedback');
+        const incorrectFeedback = document.getElementById('incorrect-feedback');
+        const nextButton = document.getElementById('next-btn');
+        const submitButton = document.getElementById('submit-btn');
+        const quizContainer = document.getElementById('quiz-container');
+        const resultContainer = document.getElementById('result-container');
+        const scoreElement = document.getElementById('score');
+        const explanationElement = document.getElementById('explanation');
+        const restartButton = document.getElementById('restart-btn');
+        const currentQuestionElement = document.getElementById('current-question');
+        const totalQuestionsElement = document.getElementById('total-questions');
+
+        // Initialize quiz
+        function initializeQuiz() {
+            currentQuestion = 0;
+            score = 0;
+            userAnswers = [];
+            totalQuestionsElement.textContent = quizData.length;
+            loadQuestion();
+            quizContainer.style.display = 'block';
+            resultContainer.style.display = 'none';
+        }
+
+        // Load question
+        function loadQuestion() {
+            const currentQuizData = quizData[currentQuestion];
+            questionElement.textContent = currentQuizData.question;
+            optionsElement.innerHTML = '';
+            currentQuestionElement.textContent = currentQuestion + 1;
+
+            currentQuizData.options.forEach((option, index) => {
+                const optionElement = document.createElement('div');
+                optionElement.classList.add('option');
+                optionElement.textContent = `${index + 1}. ${option}`;
+                optionElement.setAttribute('data-index', index);
+                optionElement.addEventListener('click', selectOption);
+                optionsElement.appendChild(optionElement);
+            });
+
+            correctFeedback.style.display = 'none';
+            incorrectFeedback.style.display = 'none';
+            nextButton.style.display = 'none';
+            
+            if (currentQuestion === quizData.length - 1) {
+                submitButton.style.display = 'block';
+                nextButton.style.display = 'none';
+            } else {
+                nextButton.style.display = 'none';
+                submitButton.style.display = 'none';
+            }
+        }
+
+        // Select option
+        function selectOption(e) {
+            const selectedOption = e.target;
+            const allOptions = document.querySelectorAll('.option');
+            
+            allOptions.forEach(option => {
+                option.classList.remove('selected');
+                option.removeAttribute('disabled');
+            });
+            
+            selectedOption.classList.add('selected');
+            
+            const selectedIndex = parseInt(selectedOption.getAttribute('data-index'));
+            const correctIndex = quizData[currentQuestion].correctAnswer;
+            
+            userAnswers[currentQuestion] = selectedIndex;
+            
+            if (selectedIndex === correctIndex) {
+                correctFeedback.style.display = 'block';
+                incorrectFeedback.style.display = 'none';
+                score++;
+            } else {
+                incorrectFeedback.style.display = 'block';
+                correctFeedback.style.display = 'none';
+            }
+            
+            allOptions.forEach(option => {
+                option.style.pointerEvents = 'none';
+            });
+            
+            if (currentQuestion === quizData.length - 1) {
+                submitButton.style.display = 'block';
+            } else {
+                nextButton.style.display = 'block';
+            }
+        }
+
+        // Next question
+        nextButton.addEventListener('click', () => {
+            currentQuestion++;
+            loadQuestion();
+        });
+
+        // Submit quiz
+        submitButton.addEventListener('click', () => {
+            quizContainer.style.display = 'none';
+            resultContainer.style.display = 'block';
+            
+            scoreElement.textContent = score;
+            
+            let explanationHTML = '<h3>解説:</h3>';
+            quizData.forEach((data, index) => {
+                const userAnswer = userAnswers[index];
+                const isCorrect = userAnswer === data.correctAnswer;
+                
+                if (isCorrect) {
+                    explanationHTML += `<p>${index + 1}. ${data.explanation}</p>`;
+                } else {
+                    explanationHTML += `<p class="wrong-answer">${index + 1}. ${data.explanation}</p>`;
+                }
+            });
+            
+            explanationElement.innerHTML = explanationHTML;
+        });
+
+        // Restart quiz
+        restartButton.addEventListener('click', initializeQuiz);
+
+        // Start the quiz
+        initializeQuiz();
+    </script>
+</body>
+</html>
